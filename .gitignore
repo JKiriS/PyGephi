@@ -71,3 +71,6 @@ hs_err_pid*
 *.csv
 *.gexf
 *.gephi
+
+# java package
+*.jar
