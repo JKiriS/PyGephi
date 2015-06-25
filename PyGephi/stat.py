@@ -7,6 +7,7 @@ PageRank = JPackage('org').gephi.statistics.plugin.PageRank
 
 
 class Stat(object):
+
     def __new__(cls, *args, **kwargs):
         sub = object.__new__(cls)
         if hasattr(sub, '__init__'):
@@ -15,12 +16,16 @@ class Stat(object):
 
 
 class Degree(Stat):
+
     def __init__(self):
         pass
+
     def cancel(self):
         pass
+
     def setGraph(self, g):
         self.graph = g
+
     def execute(self):
         import numpy as np
         adj = np.array(self.graph.getAdjMat())
@@ -30,12 +35,16 @@ class Degree(Stat):
 
 
 class KKernel(Stat):
+
     def __init__(self):
         pass
+
     def cancel(self):
         pass
+
     def setGraph(self, g):
         self.graph = g
+        
     def execute(self):
         import numpy as np
         adj = np.array(self.graph.getAdjMat())
