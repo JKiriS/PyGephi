@@ -2,8 +2,9 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+from util import isPyInteractive
 
-def degreeDistri(g, log_log=False, block=False):
+def degreeDistri(g, log_log=False, block=True):
     dgs = {}
     for n in g.getNodes():
         d = g.getDegree(n)
@@ -15,4 +16,8 @@ def degreeDistri(g, log_log=False, block=False):
         x = np.log10(x)
         y = np.log10(y)
     plt.plot(x, y, 'o')
-    plt.show(block=block)
+
+    if isPyInteractive:
+        plt.show(block=False)
+    else:
+        plt.show(block=block)
