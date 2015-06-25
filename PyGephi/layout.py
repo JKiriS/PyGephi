@@ -16,15 +16,33 @@ class Layout(object):
             sub.__init__( *args, **kwargs)
         return JProxy("org.pygephi.layout.GLayout", inst=sub)
 
+    def __init__(self):
+        pass
+
+    def initAlgo(self):
+        pass
+
+    def canAlgo(self):
+        pass
+
+    def goAlgo(self):
+        pass 
+
+    def endAlgo(self):
+        pass
+
+    def setGraph(self, g):
+        pass
+
+    def resetPropertiesValues(self):
+        pass
+
 
 class CircleLayout(Layout):
 
     def __init__(self):
         self.resetPropertiesValues()
         self.converged = False
-
-    def initAlgo(self):
-        pass
 
     def canAlgo(self):
         return not self.converged
@@ -39,13 +57,7 @@ class CircleLayout(Layout):
         for i, n in enumerate(self.graph.getNodes()):
             n.setX(r * math.cos(math.radians(each * i)))
             n.setY(r * math.sin(math.radians(each * i)))
-        self.converged = True	
-
-    def endAlgo(self):
-        pass
+        self.converged = True
 
     def setGraph(self, g):
         self.graph = g
-
-    def resetPropertiesValues(self):
-        pass
