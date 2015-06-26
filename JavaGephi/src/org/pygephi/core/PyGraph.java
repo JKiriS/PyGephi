@@ -513,6 +513,7 @@ public class PyGraph {
 		if(longTasks.containsKey(taskName))
 			throw new Exception("task exists");
 		GLongTaskExecutor executor = new GLongTaskExecutor(doInBackground, taskName, timeout);
+		longTasks.put(taskName, executor);
 		executor.execute(task);	
 		return executor;
 	}

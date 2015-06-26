@@ -230,6 +230,7 @@ public final class GLongTaskExecutor {
 
         public boolean cancel() {
             if (task != null) {
+            	canceled = true;
             	task.end();
             }
             return true;
