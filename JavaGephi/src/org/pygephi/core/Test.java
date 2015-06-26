@@ -2,7 +2,10 @@ package org.pygephi.core;
 
 import java.util.Random;
 
+import org.pygephi.layout.FALayout;
 import org.pygephi.layout.FRLayout;
+import org.pygephi.layout.LayoutTask;
+import org.pygephi.layout.SLayout;
 import org.pygephi.statistics.ClusteringCoefficient;
 import org.pygephi.statistics.Modularity;
 import org.pygephi.statistics.PageRank;
@@ -16,7 +19,7 @@ public class Test {
 	public static void main(String[] args) throws Exception {
 		
 		PyGraph g = new PyGraph(PyGraph.UNDIRECTED);
-		g.show();
+//		g.show();
 		Random random = new Random(1111);
 		for(int i=0; i<100; i++){
 			GNode gn = g.addNode(Integer.toString(i));
@@ -30,6 +33,21 @@ public class Test {
 			g.addEdge(Integer.toString(s), Integer.toString(t));
 			g.refresh();
 		}
+		g.show();
+		
+		GLongTaskExecutor glte = g.layout(new SLayout(2));
+		g.preview(GPreviewProperty.EDGE_CURVED, GPreviewProperty.newBool(true));
+//		GLongTaskExecutor glte1 = g.layout(new FALayout(), "FALayout");
+//		Thread.sleep(5000);
+//		print(glte.pause());
+//		Thread.sleep(5000);
+//		print(glte.resume());
+//		Thread.sleep(5000);
+//		glte.cancel();
+//		print(glte.slow(2));
+//		Thread.sleep(5000);
+//		print(glte.slow(0));
+//		glte.cancel();
 		g.show(true);
 //		g.save("e:/test.gephi");
 //		g.load("e:/pygephi/Graph.csv");

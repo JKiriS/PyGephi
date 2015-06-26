@@ -38,6 +38,7 @@ public class SLayout implements GLayout{
     }
 
     public void endAlgo() {
+    	System.out.println("11111");
     }
 
     public void resetPropertiesValues() {
@@ -60,7 +61,7 @@ public class SLayout implements GLayout{
 	@Override
 	public boolean canAlgo() {
 		// TODO Auto-generated method stub
-		return false;
+		return !this.converged;
 	}
 
 	@Override
@@ -76,4 +77,10 @@ public class SLayout implements GLayout{
     public boolean isConverged() {
         return converged;
     }
+
+	@Override
+	public PyGraph getGraph() {
+		// TODO Auto-generated method stub
+		return this.graph;
+	}
 }

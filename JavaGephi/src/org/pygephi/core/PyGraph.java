@@ -5,7 +5,6 @@ import java.awt.Color;
 import java.awt.Font;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import javax.swing.JFrame;
 
@@ -29,13 +28,9 @@ import org.gephi.preview.types.DependantOriginalColor;
 import org.gephi.preview.types.EdgeColor;
 import org.gephi.project.api.ProjectController;
 import org.gephi.project.api.Workspace;
-import org.gephi.project.io.LoadTask;
-import org.gephi.statistics.spi.Statistics;
-import org.gephi.utils.longtask.api.LongTaskExecutor;
-import org.gephi.utils.longtask.spi.LongTask;
-import org.gephi.utils.progress.ProgressTicket;
 import org.openide.util.Lookup;
 import org.pygephi.layout.GLayout;
+import org.pygephi.layout.LayoutTask;
 import org.pygephi.statistics.Stat;
 import org.gephi.io.exporter.api.ExportController;
 import org.gephi.io.importer.api.Container;
@@ -61,7 +56,7 @@ public class PyGraph {
 	AttributeModel attributeModel;
 	PartitionController partitionController;
 	
-	LayoutTask layouttask;
+	HashMap<String, GLongTaskExecutor> longTasks;
 	
 	HashMap<String, GNode> nodes = new HashMap<String, GNode>();
 	HashMap<Integer, GEdge> edges = new HashMap<Integer, GEdge>();
@@ -75,6 +70,8 @@ public class PyGraph {
 	public boolean isdirected = false;
 	
 	public PyGraph(String type) throws Exception{
+		longTasks = new HashMap<String, GLongTaskExecutor>();
+		
 		pc = Lookup.getDefault().lookup(ProjectController.class);
 		if(pc.getCurrentProject() == null)
 			pc.newProject();
@@ -86,13 +83,8 @@ public class PyGraph {
 		refreshGraphModel();
 	}
 	
-	public PyGraph(){
-		pc = Lookup.getDefault().lookup(ProjectController.class);
-		if(pc.getCurrentProject() == null)
-			pc.newProject();
-		workspace = pc.getCurrentWorkspace();
-
-		refreshGraphModel();
+	public PyGraph() throws Exception{
+		this(UNDIRECTED);
 	}
 	
 	public void refreshGraphModel(){
@@ -277,16 +269,40 @@ public class PyGraph {
 			neighbors[i] = nodes.get(ns[i].getNodeData().getId());
 		return neighbors;
 	}
-	
-	public void clear(){
-		graph.clear();
-		nodes.clear();
-		clearEdges();
+
+	public GNode getOpposite(GNode s, GEdge e) {
+		Node n = graph.getOpposite(s.getNode(), e.e);
+		return nodes.get(n.getNodeData().getId());
 	}
-	
-	public void clearEdges(){
-		graph.clearEdges();
-		edges.clear();
+
+	public int getOutDegree(GNode s) {
+		return graphModel.getDirectedGraph().getOutDegree(s.getNode());
+	}
+
+	public GEdge[] getInEdges(GNode s) {
+		Edge[] es = ((DirectedGraph) graph).getInEdges(s.getNode()).toArray();
+		GEdge[] ges = new GEdge[es.length];
+		for(int i=0;i<es.length;i++){
+			ges[i] = edges.get(es[i].getId());
+		}
+		return ges;
+	}
+
+	public GNode[] getPredecessors(GNode n) {
+		Node[] ns = ((DirectedGraph) graph).getPredecessors(n.getNode()).toArray();
+		GNode[] gns = new GNode[ns.length];
+		for(int i=0; i < ns.length; i++)
+			gns[i] = nodes.get(ns[i].getNodeData().getId());
+		return gns;
+	}
+
+	public GEdge[] getOutEdges(GNode s) {
+		Edge[] es = ((DirectedGraph) graph).getOutEdges(s.getNode()).toArray();
+		GEdge[] ges = new GEdge[es.length];
+		for(int i=0;i<es.length;i++){
+			ges[i] = edges.get(es[i].getId());
+		}
+		return ges;
 	}
 	
 	public boolean isAdjacent(String sid, String tid){
@@ -313,135 +329,37 @@ public class PyGraph {
 		return adj;
 	}
 	
-	public void readLock(){
-		graph.readLock();
-	}
-	
-	public void readUnlock(){
-		graph.readUnlock();
-	}
-	
-	public void load(String fname){
-		ImportController importController = Lookup.getDefault().lookup(ImportController.class);
-
-		Container container;
-		try {
-		    File file = new File(fname);
-		    container = importController.importFile(file);
-		    
-		    //Append imported data to GraphAPI
-			importController.process(container, new DefaultProcessor(), workspace);
-			refreshGraphModel();
-			syncNodeMap();
-			syncEdgeMap();
-		} catch (Exception ex) {
-		    ex.printStackTrace();
+	public void setDirected(boolean directed){
+		isdirected = directed;
+		if(directed){
+			graph = graphModel.getDirectedGraph();
 		}
-	}
-
-	
-	public boolean export(String fname){
-		ExportController ec = Lookup.getDefault().lookup(ExportController.class);
-		try {
-		   ec.exportFile(new File(fname));
-		} catch (IOException ex) {
-		   ex.printStackTrace();
-		   return false;
-		}
-		return true;
-	}
-
-	class LayoutTask implements LongTask{
-
-		GLayout layout;
-		boolean canceled = false;
-		
-		public LayoutTask(GLayout layout){
-			this.layout = layout;
-			
-		}
-		@Override
-		public boolean cancel() {
-			// TODO Auto-generated method stub
-			if(!canceled){
-				canceled = true;
-				refresh();
-				layouttask = null;
-				synchronized(this){
-					this.notify();
-				}
-			}
-			return canceled;
-		}
-		
-		private void layout(){
-			layout.initAlgo();
-			for (; (!canceled) && layout.canAlgo();) {
-			   layout.goAlgo();
-			   if(frame != null && frame.isVisible())
-				   refresh();
-			}
-			layout.endAlgo();
-			cancel();			
-		}
-
-		@Override
-		public void setProgressTicket(ProgressTicket arg0) {
-			// TODO Auto-generated method stub
-			
-		}
-		
-	}
-	
-	public LongTask layout(GLayout layout) throws Exception{
-		if(layouttask != null){
-			throw new Exception("Only One LayoutTask can be running");
-		}
-		layout.setGraph(this);
-		final LayoutTask lt = new LayoutTask(layout);
-		LongTaskExecutor executor = new LongTaskExecutor(true);
-		executor.execute(lt, new Runnable() {
-			   public void run() {
-				   lt.layout();
-			   }
-		});	
-		layouttask = lt;
-		return lt;
-	}
-	
-	public LongTask layout(GLayout layout, float timeout) throws Exception{
-		if(layouttask != null){
-			throw new Exception("Only One LayoutTask can be running");
-		}
-		layout.setGraph(this);
-		final LayoutTask lt = new LayoutTask(layout);
-		LongTaskExecutor executor = new LongTaskExecutor(true);
-		executor.execute(lt, new Runnable() {
-			   public void run() {
-				   lt.layout();
-			   }
-		});	
-		layouttask = lt;
-		synchronized(lt){
-			lt.wait((long) (timeout * 1000));
-			lt.cancel();
-		}
-		return lt;
-	}
-	
-	public LongTask getLayoutTask(){
-		return layouttask;
-	}
-	
-	public void cancelLayout(){
-		if(layouttask != null){
-			layouttask.cancel();
+		else{
+			graph = graphModel.getUndirectedGraph();
 		}
 	}
 	
-	public void calStat(Stat s){
-		s.setGraph(this);
-		s.execute();
+	public Graph getDirectedGraph(){
+		return graphModel.getDirectedGraph();
+	}
+	
+	public Graph getUnDirectedGraph(){
+		return graphModel.getUndirectedGraph();
+	}
+	
+	public GraphModel getGraphModel(){
+		return graphModel;
+	}
+	
+	public void clear(){
+		graph.clear();
+		nodes.clear();
+		clearEdges();
+	}
+	
+	public void clearEdges(){
+		graph.clearEdges();
+		edges.clear();
 	}
 	
 	public String[] getNodeAttrLabels(){
@@ -489,8 +407,9 @@ public class PyGraph {
 		model.getProperties().putValue(PreviewProperty.EDGE_THICKNESS, new Float(0.1f));
 		model.getProperties().putValue(PreviewProperty.BACKGROUND_COLOR, Color.BLACK);
         model.getProperties().putValue(PreviewProperty.EDGE_CURVED, Boolean.FALSE);
-        model.getProperties().putValue(PreviewProperty.NODE_LABEL_FONT, new Font("å®‹ä½“", Font.PLAIN, 8));
+        model.getProperties().putValue(PreviewProperty.NODE_LABEL_FONT, new Font("ËÎÌå", Font.PLAIN, 8));
 		previewController.refreshPreview();
+		refresh();
 	}
 	
 	public void preview(String key, Object value){
@@ -499,15 +418,16 @@ public class PyGraph {
 		
 		model.getProperties().putValue(key, value);
 		previewController.refreshPreview();
+		refresh();
 	}
 	
 	public void show(boolean block){
 		if(frame != null && frame.isVisible()){
-			refresh();
+			refresh(true);
 			setFrameCloseAction(block);
 		}
 		else if(frame != null){
-			refresh();
+			refresh(true);
 			frame.setVisible(true);
 			setFrameCloseAction(block);
 		}
@@ -527,14 +447,13 @@ public class PyGraph {
 		}
 	}
 	
-	
 	public void show(){
 		if(frame != null && frame.isVisible()){
-			refresh();
+			refresh(true);
 			return ;
 		}
 		else if(frame != null){
-			refresh();
+			refresh(true);
 			frame.setVisible(true);
 			return ;
 		}
@@ -552,13 +471,17 @@ public class PyGraph {
 		applet.init();
 		
 		previewController.render(target);
-		refresh();
+		refresh(true);
 		
 		frame = new JFrame("Network Preview");
 		frame.setLayout(new BorderLayout());
 		frame.add(applet, BorderLayout.CENTER);
 		frame.pack();
 		frame.setVisible(true);
+	}
+	
+	public JFrame getFrame(){
+		return frame;
 	}
 	
 	private void setFrameCloseAction(boolean block){
@@ -570,14 +493,102 @@ public class PyGraph {
 		}
 	}
 	
-	public void refresh(){
+	public void refresh(boolean zoom){
 		if(previewController != null){
 			previewController.refreshPreview();
 		}
 		if(target != null){
 			target.refresh();
-			target.resetZoom();
+			if(zoom)
+				target.resetZoom();
 		}
+	}
+	
+	public void refresh(){
+		refresh(false);
+	}
+	
+	public GLongTaskExecutor execute(final GLongTask task, boolean doInBackground, 
+			String taskName, float timeout) throws Exception{
+		if(longTasks.containsKey(taskName))
+			throw new Exception("task exists");
+		GLongTaskExecutor executor = new GLongTaskExecutor(doInBackground, taskName, timeout);
+		executor.execute(task);	
+		return executor;
+	}
+	
+	public GLongTaskExecutor getLongTask(String key){
+		return longTasks.get(key);
+	}
+	
+	public GLongTaskExecutor[] getLongTasks(){
+		GLongTaskExecutor[] glt = new GLongTaskExecutor[longTasks.size()];
+		return longTasks.values().toArray(glt);
+	}
+	
+	public boolean removeLongTask(String key){
+		GLongTaskExecutor t = getLongTask(key);
+		if(t != null){
+			if(t.isRunning()){
+				t.cancel();
+			}
+			longTasks.remove(key);
+		}
+		return true;
+	}
+		
+	public GLongTaskExecutor layout(final GLayout layout, String taskName) throws Exception{
+		layout.setGraph(this);
+		GLongTask lt = new LayoutTask(layout);
+		return execute(lt, true, taskName, 0);
+	}
+	
+	public GLongTaskExecutor layout(final GLayout layout, float timeout, String taskName) throws Exception{
+		layout.setGraph(this);
+		GLongTask lt = new LayoutTask(layout);
+		return execute(lt, false, taskName, timeout);
+	}
+	
+	public GLongTaskExecutor layout(final GLayout layout) throws Exception{
+		return layout(layout, "LayoutTask");
+	}
+	
+	public GLongTaskExecutor layout(final GLayout layout, float timeout) throws Exception{
+		return layout(layout, timeout, "LayoutTask");
+	}
+	
+	public void calStat(Stat s){
+		s.setGraph(this);
+		s.execute();
+	}	
+	
+	public void load(String fname){
+		ImportController importController = Lookup.getDefault().lookup(ImportController.class);
+
+		Container container;
+		try {
+		    File file = new File(fname);
+		    container = importController.importFile(file);
+		    
+		    //Append imported data to GraphAPI
+			importController.process(container, new DefaultProcessor(), workspace);
+			refreshGraphModel();
+			syncNodeMap();
+			syncEdgeMap();
+		} catch (Exception ex) {
+		    ex.printStackTrace();
+		}
+	}
+
+	public boolean export(String fname){
+		ExportController ec = Lookup.getDefault().lookup(ExportController.class);
+		try {
+		   ec.exportFile(new File(fname));
+		} catch (IOException ex) {
+		   ex.printStackTrace();
+		   return false;
+		}
+		return true;
 	}
 	
 	public void save(String fname) throws Exception{
@@ -589,7 +600,7 @@ public class PyGraph {
 		savetask.run();
 	}
 	
-	public static PyGraph open(String fname){
+	public static PyGraph open(String fname) throws Exception{
 		ProjectController pc = Lookup.getDefault().lookup(ProjectController.class);
 		if (pc.getCurrentProject() != null) {
 			pc.closeCurrentProject();
@@ -599,61 +610,20 @@ public class PyGraph {
 		return new PyGraph();
 	}
 	
-	public GraphModel getGraphModel(){
-		return graphModel;
-	}
-
-	public GNode getOpposite(GNode s, GEdge e) {
-		Node n = graph.getOpposite(s.getNode(), e.e);
-		return nodes.get(n.getNodeData().getId());
-	}
-
-	public int getOutDegree(GNode s) {
-		return graphModel.getDirectedGraph().getOutDegree(s.getNode());
-	}
-
-	public GEdge[] getInEdges(GNode s) {
-		Edge[] es = ((DirectedGraph) graph).getInEdges(s.getNode()).toArray();
-		GEdge[] ges = new GEdge[es.length];
-		for(int i=0;i<es.length;i++){
-			ges[i] = edges.get(es[i].getId());
-		}
-		return ges;
-	}
-
-	public GNode[] getPredecessors(GNode n) {
-		Node[] ns = ((DirectedGraph) graph).getPredecessors(n.getNode()).toArray();
-		GNode[] gns = new GNode[ns.length];
-		for(int i=0; i < ns.length; i++)
-			gns[i] = nodes.get(ns[i].getNodeData().getId());
-		return gns;
-	}
-
-	public GEdge[] getOutEdges(GNode s) {
-		Edge[] es = ((DirectedGraph) graph).getOutEdges(s.getNode()).toArray();
-		GEdge[] ges = new GEdge[es.length];
-		for(int i=0;i<es.length;i++){
-			ges[i] = edges.get(es[i].getId());
-		}
-		return ges;
+	public void readLock(){
+		graph.readLock();
 	}
 	
-	public void setDirected(boolean directed){
-		isdirected = directed;
-		if(directed){
-			graph = graphModel.getDirectedGraph();
-		}
-		else{
-			graph = graphModel.getUndirectedGraph();
-		}
+	public void readUnlock(){
+		graph.readUnlock();
 	}
 	
-	public Graph getDirectedGraph(){
-		return graphModel.getDirectedGraph();
+	public void writeLock(){
+		graph.writeLock();
 	}
 	
-	public Graph getUnDirectedGraph(){
-		return graphModel.getUndirectedGraph();
+	public void writeUnlock(){
+		graph.writeUnlock();
 	}
 	
 }

@@ -16,4 +16,6 @@ public interface GLayout{
 	
 	public void setGraph(PyGraph g);
 	
+	public PyGraph getGraph();
+	
 }

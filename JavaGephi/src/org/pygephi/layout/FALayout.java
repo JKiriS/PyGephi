@@ -353,4 +353,9 @@ public class FALayout implements GLayout{
 		this.graph = g;
 	}
 
+	@Override
+	public PyGraph getGraph() {
+		// TODO Auto-generated method stub
+		return this.graph;
+	}
 }

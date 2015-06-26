@@ -5,6 +5,7 @@ from util import isPyInteractive
 import time
 
 PyGraph = JPackage('org').pygephi.core.PyGraph
+Property = JPackage('org').pygephi.core.GPreviewProperty
 
 
 class Graph(object):
@@ -56,3 +57,33 @@ class Graph(object):
             self.g.show(True)
         else:
             self.g.show()
+
+
+class LongTask(object):
+    
+    def __new__(cls, *args, **kwargs):
+        sub = object.__new__(cls)
+        if hasattr(sub, '__init__'):
+            sub.__init__( *args, **kwargs)
+        for method in dir(Layout):
+            if not method.startswith('__') and not hasattr(sub, method):
+                try:
+                    setattr(sub, getattr(sub, method))
+                except:
+                    pass
+        return JProxy("org.pygephi.layout.GLongTask", inst=sub)
+
+    def __init__(self):
+        pass
+
+    def init(self):
+        pass
+
+    def canGo(self):
+        return False
+
+    def go(self):
+        pass 
+
+    def end(self):
+        pass

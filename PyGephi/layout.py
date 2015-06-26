@@ -14,6 +14,12 @@ class Layout(object):
         sub = object.__new__(cls)
         if hasattr(sub, '__init__'):
             sub.__init__( *args, **kwargs)
+        for method in dir(Layout):
+            if not method.startswith('__') and not hasattr(sub, method):
+                try:
+                    setattr(sub, getattr(sub, method))
+                except:
+                    pass
         return JProxy("org.pygephi.layout.GLayout", inst=sub)
 
     def __init__(self):
@@ -23,7 +29,7 @@ class Layout(object):
         pass
 
     def canAlgo(self):
-        pass
+        return False
 
     def goAlgo(self):
         pass 
@@ -32,7 +38,10 @@ class Layout(object):
         pass
 
     def setGraph(self, g):
-        pass
+        self.graph = g
+
+    def getGraph(self):
+        return self.graph
 
     def resetPropertiesValues(self):
         pass
@@ -50,6 +59,7 @@ class CircleLayout(Layout):
     def goAlgo(self):
         node_count = self.graph.getNodeCount()
         if node_count <= 0:
+            self.converged = True
             return
         r = node_count * 5.
         import math
@@ -59,5 +69,8 @@ class CircleLayout(Layout):
             n.setY(r * math.sin(math.radians(each * i)))
         self.converged = True
 
-    def setGraph(self, g):
-        self.graph = g
+    def endAlgo(self):
+        from graph import Property
+        self.graph.preview(Property.EDGE_CURVED, Property.newBool(True))
+        self.graph.preview(Property.EDGE_RADIUS, 10.0)
+
