@@ -38,7 +38,6 @@ public class SLayout implements GLayout{
     }
 
     public void endAlgo() {
-    	System.out.println("11111");
     }
 
     public void resetPropertiesValues() {

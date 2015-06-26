@@ -514,6 +514,7 @@ public class PyGraph {
 			throw new Exception("task exists");
 		GLongTaskExecutor executor = new GLongTaskExecutor(doInBackground, taskName, timeout);
 		longTasks.put(taskName, executor);
+		executor.setLongTaskPool(longTasks);
 		executor.execute(task);	
 		return executor;
 	}

@@ -1,5 +1,6 @@
 package org.pygephi.core;
 
+import java.util.HashMap;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ExecutorService;
@@ -18,6 +19,7 @@ public final class GLongTaskExecutor {
     private RunningLongTask runningTask;
     private Timer cancelTimer;
     private ExecutorService executor;
+    HashMap<String, GLongTaskExecutor> longTasks;
 
     /**
      * Creates a new long task executor.
@@ -37,6 +39,10 @@ public final class GLongTaskExecutor {
     
     public String getName(){
     	return this.name;
+    }
+    
+    public void setLongTaskPool(HashMap<String, GLongTaskExecutor> longTasks){
+    	this.longTasks = longTasks;
     }
 
     /**
@@ -122,14 +128,8 @@ public final class GLongTaskExecutor {
     public synchronized void cancel() {
         if (runningTask != null) {
             if (runningTask.isCancellable()) {
-                if (interruptCancel) {
-                    if (!runningTask.cancel()) {
-                        cancelTimer = new Timer(name + "_cancelTimer");
-                        cancelTimer.schedule(new InterruptTimerTask(), interruptDelay);
-                    }
-                } else {
-                    runningTask.cancel();
-                }
+                runningTask.cancel();
+                finished();
             }
         }
     }
@@ -178,6 +178,8 @@ public final class GLongTaskExecutor {
             cancelTimer.cancel();
         }
         runningTask = null;
+        if(longTasks != null)
+        	longTasks.remove(this.name);
     }
 
     /**

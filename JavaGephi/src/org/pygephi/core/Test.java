@@ -36,18 +36,25 @@ public class Test {
 		g.show();
 		
 		GLongTaskExecutor glte = g.layout(new FRLayout());
+		g.layout(new SLayout(2), "SLayout");
 		g.preview(GPreviewProperty.EDGE_CURVED, GPreviewProperty.newBool(true));
-//		GLongTaskExecutor glte1 = g.layout(new FALayout(), "FALayout");
+		GLongTaskExecutor glte1 = g.layout(new FALayout(), "FALayout");
 //		Thread.sleep(5000);
 //		print(glte.pause());
 //		Thread.sleep(5000);
 //		print(glte.resume());
+		for(GLongTaskExecutor gte:g.getLongTasks()){
+			print(gte.getName());
+		}
 		Thread.sleep(5000);
 //		glte.cancel();
 //		print(glte.slow(2));
 //		Thread.sleep(5000);
 //		print(glte.slow(0));
-		glte.cancel();
+		glte1.cancel();
+		for(GLongTaskExecutor gte:g.getLongTasks()){
+			print(gte.getName());
+		}
 		g.show(true);
 //		g.save("e:/test.gephi");
 //		g.load("e:/pygephi/Graph.csv");
