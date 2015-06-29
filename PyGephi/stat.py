@@ -12,19 +12,25 @@ class Stat(object):
         sub = object.__new__(cls)
         if hasattr(sub, '__init__'):
             sub.__init__( *args, **kwargs)
+        for method in dir(Stat):
+            if not method.startswith('__') and not hasattr(sub, method):
+                try:
+                    setattr(sub, getattr(sub, method))
+                except:
+                    pass
         return JProxy("org.pygephi.statistics.Stat", inst=sub)
 
-
-class Degree(Stat):
-
-    def __init__(self):
-        pass
-
     def cancel(self):
-        pass
+        return False
 
     def setGraph(self, g):
         self.graph = g
+
+    def execute(self):
+        pass
+
+
+class Degree(Stat):
 
     def execute(self):
         import numpy as np
@@ -35,15 +41,6 @@ class Degree(Stat):
 
 
 class KKernel(Stat):
-
-    def __init__(self):
-        pass
-
-    def cancel(self):
-        pass
-
-    def setGraph(self, g):
-        self.graph = g
         
     def execute(self):
         import numpy as np
