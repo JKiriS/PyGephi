@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from jpype import JPackage
+from jpype import JPackage, JProxy
 from util import isPyInteractive
 import time
 
@@ -65,13 +65,13 @@ class LongTask(object):
         sub = object.__new__(cls)
         if hasattr(sub, '__init__'):
             sub.__init__( *args, **kwargs)
-        for method in dir(Layout):
+        for method in dir(LongTask):
             if not method.startswith('__') and not hasattr(sub, method):
                 try:
                     setattr(sub, getattr(sub, method))
                 except:
                     pass
-        return JProxy("org.pygephi.layout.GLongTask", inst=sub)
+        return JProxy("org.pygephi.core.GLongTask", inst=sub)
 
     def __init__(self):
         pass
@@ -87,3 +87,6 @@ class LongTask(object):
 
     def end(self):
         pass
+
+    def setGraph(self, g):
+        self.graph = g

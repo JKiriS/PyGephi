@@ -9,5 +9,7 @@ public interface GLongTask {
 	public void init();
 	
 	public boolean canGo();
+
+	public void setGraph(PyGraph g);
 	
 }

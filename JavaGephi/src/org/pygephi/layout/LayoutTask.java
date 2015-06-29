@@ -1,10 +1,12 @@
 package org.pygephi.layout;
 
 import org.pygephi.core.GLongTask;
+import org.pygephi.core.PyGraph;
 
 public class LayoutTask implements GLongTask {
 	
 	GLayout layout;
+	PyGraph graph;
 	
 	public LayoutTask(GLayout layout){
 		this.layout = layout;
@@ -14,8 +16,8 @@ public class LayoutTask implements GLongTask {
 	public void go() {
 		// TODO Auto-generated method stub
 		layout.goAlgo();
-		if(layout.getGraph().getFrame() != null && layout.getGraph().getFrame().isVisible())
-		    layout.getGraph().refresh();
+		if(graph != null && graph.getFrame() != null && graph.getFrame().isVisible())
+		    graph.refresh();
 	}
 
 	@Override
@@ -34,6 +36,12 @@ public class LayoutTask implements GLongTask {
 	public boolean canGo() {
 		// TODO Auto-generated method stub
 		return layout.canAlgo();
+	}
+
+	@Override
+	public void setGraph(PyGraph g) {
+		// TODO Auto-generated method stub
+		this.graph = g;
 	}
 
 }

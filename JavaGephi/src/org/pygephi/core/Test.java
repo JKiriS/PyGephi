@@ -1,5 +1,6 @@
 package org.pygephi.core;
 
+import java.util.ArrayList;
 import java.util.Random;
 
 import org.pygephi.layout.FALayout;
@@ -23,9 +24,10 @@ public class Test {
 		Random random = new Random(1111);
 		for(int i=0; i<100; i++){
 			GNode gn = g.addNode(Integer.toString(i));
-			gn.setSize(10.0f);
-			gn.setColor(random.nextFloat(), random.nextFloat(), random.nextFloat());
-			g.refresh();
+			gn.setValue("test", Float.toString(random.nextFloat()));
+//			gn.setSize(10.0f);
+//			gn.setColor(random.nextFloat(), random.nextFloat(), random.nextFloat());
+//			g.refresh();
 		}
 		for(int i=0; i<500; i++){
 			int s = random.nextInt(100);
@@ -33,29 +35,47 @@ public class Test {
 			g.addEdge(Integer.toString(s), Integer.toString(t));
 			g.refresh();
 		}
-		g.show();
+		ArrayList al = new ArrayList();
+		for(Object o : g.getNodeAttrs("test")){
+			print(o instanceof String);
+			print(o.getClass().cast(o) instanceof String);
+		}
+//		g.show();
 		
-		GLongTaskExecutor glte = g.layout(new FRLayout());
-		g.layout(new SLayout(2), "SLayout");
-		g.preview(GPreviewProperty.EDGE_CURVED, GPreviewProperty.newBool(true));
-		GLongTaskExecutor glte1 = g.layout(new FALayout(), "FALayout");
+//		GLongTaskExecutor glte = g.layout(new FRLayout());
+//		glte.start();
+//		Thread.sleep(3000);
+//		print("aaa");
+//		glte.pause();
+//		Thread.sleep(3000);
+////		glte.resume();
+//		for(int i=0;i<10;i++){
+//			glte.step();
+//			Thread.sleep(1000);
+//			print(i);
+//		}
+//		glte.resume();
+		
+//		g.layout(new SLayout(2), "SLayout");
+//		g.preview(GPreviewProperty.EDGE_CURVED, GPreviewProperty.newBool(true));
+//		GLongTaskExecutor glte1 = g.layout(new FALayout(), "FRLayout");
+////		Thread.sleep(5000);
+////		print(glte.pause());
+////		Thread.sleep(5000);
+////		print(glte.resume());
+//		for(GLongTaskExecutor gte:g.getLongTasks()){
+//			print(gte.getName());
+//		}
 //		Thread.sleep(5000);
-//		print(glte.pause());
-//		Thread.sleep(5000);
-//		print(glte.resume());
-		for(GLongTaskExecutor gte:g.getLongTasks()){
-			print(gte.getName());
-		}
-		Thread.sleep(5000);
-//		glte.cancel();
-//		print(glte.slow(2));
-//		Thread.sleep(5000);
-//		print(glte.slow(0));
-		glte1.cancel();
-		for(GLongTaskExecutor gte:g.getLongTasks()){
-			print(gte.getName());
-		}
-		g.show(true);
+////		glte.cancel();
+////		print(glte.slow(2));
+////		Thread.sleep(5000);
+////		print(glte.slow(0));
+//		glte1.cancel();
+//		for(GLongTaskExecutor gte:g.getLongTasks()){
+//			print(gte.getName());
+//		}
+//		g.show(true);
 //		g.save("e:/test.gephi");
 //		g.load("e:/pygephi/Graph.csv");
 //		for(GNode gn : g.getNodes()){

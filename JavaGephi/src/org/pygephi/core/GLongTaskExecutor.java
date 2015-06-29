@@ -13,7 +13,6 @@ import java.util.concurrent.TimeUnit;
 public final class GLongTaskExecutor {
 
     private final boolean inBackground;
-    private boolean interruptCancel;
     private final long interruptDelay;
     private final String name;
     private RunningLongTask runningTask;
@@ -30,11 +29,26 @@ public final class GLongTaskExecutor {
      * @param interruptDelay number of seconds to wait before *
      * calling <code>Thread.interrupt()</code> after a cancel request
      */
-    public GLongTaskExecutor(boolean doInBackground, String name, float interruptDelay) {
+    public GLongTaskExecutor(GLongTask task, boolean doInBackground, String taskName, float interruptDelay) {
         this.inBackground = doInBackground;
-        this.name = name;
-        this.interruptCancel = true;
-        this.interruptDelay = (int) interruptDelay * 1000;
+        this.name = taskName;
+        this.interruptDelay = (long) interruptDelay * 1000;
+        
+        if (runningTask != null) {
+            throw new IllegalStateException("A task is still executing");
+        }
+        if (executor == null) {
+            this.executor = new ThreadPoolExecutor(0, 1, 15, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(), new NamedThreadFactory());
+        }
+        runningTask = new RunningLongTask(task,  taskName);
+    }
+    
+    public GLongTaskExecutor(GLongTask task, boolean doInBackground, String name) {
+        this(task, doInBackground, name, 0);
+    }
+
+    public GLongTaskExecutor(GLongTask task, boolean doInBackground) {
+        this(task, doInBackground, "LongTaskExecutor");
     }
     
     public String getName(){
@@ -45,86 +59,6 @@ public final class GLongTaskExecutor {
     	this.longTasks = longTasks;
     }
 
-    /**
-     * Creates a new long task executor.
-     *
-     * @param doInBackground doInBackground when <code>true</code>, the task
-     * will be executed in a separate thread
-     * @param name the name of the executor, used to recognize threads by names
-     */
-    public GLongTaskExecutor(boolean doInBackground, String name) {
-        this(doInBackground, name, 0);
-        this.interruptCancel = false;
-    }
-
-    /**
-     * Creates a new long task executor.
-     *
-     * @param doInBackground doInBackground when <code>true</code>, the task
-     * will be executed in a separate thread
-     */
-    public GLongTaskExecutor(boolean doInBackground) {
-        this(doInBackground, "LongTaskExecutor");
-    }
-
-    /**
-     * Execute a long task with cancel and progress support. Task can be
-     * <code>null</code>. In this case
-     * <code>runnable</code> will be executed normally, but without cancel and
-     * progress support.
-     *
-     * @param task the task to be executed, can be <code>null</code>.
-     * @param runnable the runnable to be executed
-     * @param taskName the name of the task, is displayed in the status bar if
-     * available
-     * @param errorHandler error handler for exception retrieval during
-     * execution
-     * @throws NullPointerException if <code>runnable</code> *
-     * or <code>taskName</code> is null
-     * @throws IllegalStateException if a task is still executing at this time
-     */
-    public void execute(GLongTask task, String taskName) {
-        if (runningTask != null) {
-            throw new IllegalStateException("A task is still executing");
-        }
-        if (executor == null) {
-            this.executor = new ThreadPoolExecutor(0, 1, 15, TimeUnit.SECONDS, new LinkedBlockingQueue<Runnable>(), new NamedThreadFactory());
-        }
-        runningTask = new RunningLongTask(task,  taskName);
-        if(this.interruptDelay > 0){
-        	cancelTimer = new Timer(name + "_cancelTimer");
-        	cancelTimer.schedule(new InterruptTimerTask(), interruptDelay);
-        }
-        if (inBackground) {
-            runningTask.future = executor.submit(runningTask);
-        } else {
-            runningTask.run();            
-        }
-    }
-
-    /**
-     * Execute a long task with cancel and progress support. Task can be
-     * <code>null</code>. In this case
-     * <code>runnable</code> will be executed normally, but without cancel and
-     * progress support.
-     *
-     * @param task the task to be executed, can be <code>null</code>.
-     * @param runnable the runnable to be executed
-     * @throws NullPointerException if <code>runnable</code> is null
-     * @throws IllegalStateException if a task is still executing at this time
-     */
-    public void execute(GLongTask task) {
-        execute(task, "");
-    }
-
-    /**
-     * Cancel the current task. If the task fails to cancel itself and if an
-     * <code>interruptDelay</code> has been specified, the task will be
-     * <b>interrupted</b> after
-     * <code>interruptDelay</code>. Using
-     * <code>Thread.interrupt()</code> may cause hazardous behaviours and should
-     * be avoided. Therefore any task should be cancellable.
-     */
     public synchronized void cancel() {
         if (runningTask != null) {
             if (runningTask.isCancellable()) {
@@ -132,6 +66,22 @@ public final class GLongTaskExecutor {
                 finished();
             }
         }
+    }
+    
+    public boolean start(){
+    	if(runningTask != null){
+    		if(this.interruptDelay > 0){
+            	cancelTimer = new Timer(name + "_cancelTimer");
+            	cancelTimer.schedule(new InterruptTimerTask(), this.interruptDelay);
+            }
+    		if (inBackground) {
+                runningTask.future = executor.submit(runningTask);
+            } else {
+                runningTask.run();            
+            }
+    		return true;
+    	}
+    	return false;
     }
     
     public boolean pause() throws InterruptedException{
@@ -155,20 +105,19 @@ public final class GLongTaskExecutor {
     	return 0;
     }
     
-    public float slow(float s){
+    public float slow(int s){
     	if(runningTask != null){
     		return runningTask.slow(s);
     	}
     	return 0;
     }
+    
+    public void step(){
+    	if(runningTask != null){
+    		runningTask.step();
+    	}
+    }
 
-    /**
-     * Returns
-     * <code>true</code> if the executor is executing a task.
-     *
-     * @return <code>true</code> if a task is running, <code>false</code>
-     * otherwise
-     */
     public boolean isRunning() {
         return runningTask != null;
     }
@@ -188,11 +137,12 @@ public final class GLongTaskExecutor {
     private class RunningLongTask implements Runnable {
 
         private final GLongTask task;
-//        private final Runnable runnable;
         private Future<?> future;
         private boolean canceled;
         private boolean suspend;
-        private float speed = 0;
+        private int speed = 0;
+        private int defaultsleep = 50;
+        private boolean step = false;
 
         public RunningLongTask(GLongTask task, String taskName) {
             this.task = task;
@@ -203,18 +153,28 @@ public final class GLongTaskExecutor {
         	try {
         		task.init();
         		for (; (!canceled) && task.canGo();) {
+        			
+        			if(step){
+        				suspend = true;
+        				step = false;
+        				task.go();
+        			}
+        			
         			if(suspend){
         				try {
-        					Thread.sleep(50);
+        					Thread.sleep(defaultsleep);
         					continue;
         				} catch (InterruptedException e) {
         					// TODO Auto-generated catch block
         					e.printStackTrace();
         				}
         			}
+        			
         			if(speed > 0){
         				try {
-        					Thread.sleep( (int)(50*speed) );
+        					int temp = speed;
+        					while(temp-- > 0 && temp < speed)
+        						Thread.sleep( defaultsleep );
         				} catch (InterruptedException e) {
         					// TODO Auto-generated catch block
         					e.printStackTrace();
@@ -224,10 +184,15 @@ public final class GLongTaskExecutor {
         		}
         		task.end();
             } catch (Exception e) {
+            	e.getStackTrace();
                 finished();
             }   
             
             finished();
+        }
+        
+        public void step(){
+        	this.step = true;
         }
 
         public boolean cancel() {
@@ -255,14 +220,15 @@ public final class GLongTaskExecutor {
         
         public boolean resume(){
         	suspend = false;
+        	step = false;
         	return !suspend;
         }
         
-        public float speed(){
+        public int speed(){
         	return speed;
         }
         
-        public float slow(float s){
+        public int slow(int s){
         	speed = s;
         	return speed;
         }

@@ -18,7 +18,7 @@ public class FRLayout implements GLayout{
     private double speed;
 	
 	public FRLayout(){
-		this.graph = Lookup.getDefault().lookup(PyGraph.class);
+//		this.graph = Lookup.getDefault().lookup(PyGraph.class);
 		this.resetPropertiesValues();
 	}
 	

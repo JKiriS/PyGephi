@@ -512,10 +512,11 @@ public class PyGraph {
 			String taskName, float timeout) throws Exception{
 		if(longTasks.containsKey(taskName))
 			throw new Exception("task exists");
-		GLongTaskExecutor executor = new GLongTaskExecutor(doInBackground, taskName, timeout);
+		task.setGraph(this);
+		GLongTaskExecutor executor = new GLongTaskExecutor(task, doInBackground, taskName, timeout);
 		longTasks.put(taskName, executor);
 		executor.setLongTaskPool(longTasks);
-		executor.execute(task);	
+//		executor.execute(task);	
 		return executor;
 	}
 	
@@ -538,25 +539,24 @@ public class PyGraph {
 		}
 		return true;
 	}
-		
-	public GLongTaskExecutor layout(final GLayout layout, String taskName) throws Exception{
-		layout.setGraph(this);
+	
+	public GLongTaskExecutor layout(final GLayout layout, float timeout, boolean doInBackground, String taskName) throws Exception{
 		GLongTask lt = new LayoutTask(layout);
-		return execute(lt, true, taskName, 0);
+		layout.setGraph(this);
+		GLongTaskExecutor lte = execute(lt, doInBackground, taskName, timeout);
+		return lte;
 	}
 	
-	public GLongTaskExecutor layout(final GLayout layout, float timeout, String taskName) throws Exception{
-		layout.setGraph(this);
-		GLongTask lt = new LayoutTask(layout);
-		return execute(lt, false, taskName, timeout);
+	public GLongTaskExecutor layout(final GLayout layout, float timeout, boolean doInBackground) throws Exception{
+		return layout(layout, timeout, doInBackground, "LayoutTask");
 	}
 	
 	public GLongTaskExecutor layout(final GLayout layout) throws Exception{
-		return layout(layout, "LayoutTask");
+		return layout(layout, 0, true);
 	}
 	
 	public GLongTaskExecutor layout(final GLayout layout, float timeout) throws Exception{
-		return layout(layout, timeout, "LayoutTask");
+		return layout(layout, timeout, false);
 	}
 	
 	public void calStat(Stat s){
