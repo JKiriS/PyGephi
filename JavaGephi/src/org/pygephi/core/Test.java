@@ -35,12 +35,14 @@ public class Test {
 			g.addEdge(Integer.toString(s), Integer.toString(t));
 			g.refresh();
 		}
-		ArrayList al = new ArrayList();
-		for(Object o : g.getNodeAttrs("test")){
-			print(o instanceof String);
-			print(o.getClass().cast(o) instanceof String);
-		}
-//		g.show();
+//		ArrayList al = new ArrayList();
+//		for(Object o : g.getNodeAttrs("test")){
+//			print(o instanceof String);
+//			print(o.getClass().cast(o) instanceof String);
+//		}
+		g.calStat(new Modularity());
+		g.partNodeColor("modularity");
+		g.show();
 		
 //		GLongTaskExecutor glte = g.layout(new FRLayout());
 //		glte.start();

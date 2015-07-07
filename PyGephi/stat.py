@@ -2,8 +2,8 @@
 
 from jpype import JPackage, JProxy
 
-Modularity = JPackage('org').gephi.statistics.plugin.Modularity
-PageRank = JPackage('org').gephi.statistics.plugin.PageRank
+Modularity = JPackage('org').pygephi.statistics.Modularity
+PageRank = JPackage('org').pygephi.statistics.PageRank
 
 
 class Stat(object):
