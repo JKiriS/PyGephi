@@ -10,7 +10,10 @@ Property = JPackage('org').pygephi.core.GPreviewProperty
 
 class Graph(object):
 
-    def __init__(self, t=PyGraph.UNDIRECTED, autorefresh=False):
+    UNDIRECTED = PyGraph.UNDIRECTED
+    DIRECTED = PyGraph.DIRECTED
+
+    def __init__(self, t=UNDIRECTED, autorefresh=False):
         self.g = PyGraph(t)
         self.autorefresh = autorefresh
         def _autorefreshdeco(func):
